@@ -17,6 +17,14 @@ export default function RootLayout() {
               title: 'Habit Details',
             }}
           />
+          <Stack.Screen
+            name="profile"
+            options={{
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Profile & Settings',
+            }}
+          />
         </Stack>
       </HabitProvider>
     </ThemeProvider>

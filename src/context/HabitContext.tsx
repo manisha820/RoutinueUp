@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { scheduleHabitReminder, cancelHabitReminder } from '@/utils/notifications';
+import { loadData, saveData } from '@/utils/storage';
 
 // Types Definition
 export interface Habit {
@@ -44,6 +45,15 @@ interface HabitContextType {
   logs: HabitLog[];
   stats: UserStats;
   challenges: Challenge[];
+  userId: string | null;
+  userEmail: string | null;
+  isAnonymous: boolean;
+  isPremium: boolean;
+  setPremium: (premium: boolean) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  logIn: (email: string, password: string) => Promise<{ error: any }>;
+  logOut: () => Promise<void>;
+  upgradeAccount: (email: string, password: string) => Promise<{ error: any }>;
   addHabit: (name: string, emoji: string, timeBlock: 'Morning' | 'Afternoon' | 'Evening', targetTime?: string, enableReminder?: boolean) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   toggleHabitComplete: (habitId: string, date: string, note?: string) => Promise<void>;
@@ -81,6 +91,9 @@ const INITIAL_STATS: UserStats = {
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(true);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [stats, setStats] = useState<UserStats>(INITIAL_STATS);
@@ -89,6 +102,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function initSupabase() {
+      // Load premium state
+      const savedPremium = await loadData<boolean>('@habit_tracker:is_premium', false);
+      setIsPremium(savedPremium);
+
       const { data: { session } } = await supabase.auth.getSession();
       let currentUser = session?.user?.id;
 
@@ -104,12 +121,76 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       if (currentUser) {
         setUserId(currentUser);
+        setUserEmail(session?.user?.email ?? null);
+        setIsAnonymous(session?.user?.is_anonymous ?? true);
         await fetchAllData(currentUser);
       }
       setLoading(false);
     }
     initSupabase();
   }, []);
+
+  const setPremium = async (premium: boolean) => {
+    setIsPremium(premium);
+    await saveData('@habit_tracker:is_premium', premium);
+  };
+
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return { error };
+    if (data?.user) {
+      setUserId(data.user.id);
+      setUserEmail(data.user.email ?? null);
+      setIsAnonymous(data.user.is_anonymous ?? false);
+      await fetchAllData(data.user.id);
+    }
+    return { error: null };
+  };
+
+  const logIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error };
+    if (data?.user) {
+      setUserId(data.user.id);
+      setUserEmail(data.user.email ?? null);
+      setIsAnonymous(data.user.is_anonymous ?? false);
+      await fetchAllData(data.user.id);
+    }
+    return { error: null };
+  };
+
+  const logOut = async () => {
+    await supabase.auth.signOut();
+    setUserId(null);
+    setUserEmail(null);
+    setIsAnonymous(true);
+    setHabits([]);
+    setLogs([]);
+    setStats(INITIAL_STATS);
+    setChallenges(DEFAULT_CHALLENGES);
+
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (data?.user) {
+      setUserId(data.user.id);
+      setUserEmail(null);
+      setIsAnonymous(true);
+      await fetchAllData(data.user.id);
+    }
+  };
+
+  const upgradeAccount = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.updateUser({
+      email,
+      password,
+    });
+    if (error) return { error };
+    if (data?.user) {
+      setUserEmail(data.user.email ?? null);
+      setIsAnonymous(false);
+    }
+    return { error: null };
+  };
+
 
   async function fetchAllData(uid: string) {
     try {
@@ -386,7 +467,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <HabitContext.Provider value={{
-      habits, logs, stats, challenges, addHabit, deleteHabit, toggleHabitComplete, skipHabit, resetAllData, isTodayCompleted, getLocalDateString
+      habits, logs, stats, challenges, userId, userEmail, isAnonymous, isPremium, setPremium, signUp, logIn, logOut, upgradeAccount, addHabit, deleteHabit, toggleHabitComplete, skipHabit, resetAllData, isTodayCompleted, getLocalDateString
     }}>
       {!loading && children}
     </HabitContext.Provider>

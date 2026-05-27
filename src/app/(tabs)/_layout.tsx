@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/use-theme';
 import { Pressable, View } from 'react-native';
@@ -10,7 +10,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerRight: () => (
-          <Pressable style={{ marginRight: 16 }} onPress={() => console.log('Profile clicked')}>
+          <Pressable style={{ marginRight: 16 }} onPress={() => router.push('/profile')}>
             <View style={{
               width: 36,
               height: 36,
