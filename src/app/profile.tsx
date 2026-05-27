@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '@/context/ThemeContext';
 import { useHabitContext } from '@/context/HabitContext';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 
 export default function ProfileScreen() {
   const { colors, themeSelection, setThemeSelection } = useThemeContext();
@@ -160,6 +160,19 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: colors.cardBackground,
+          },
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+          headerShadowVisible: false,
+        }}
+      />
       {/* 1. Header Card */}
       <View style={[styles.headerCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <View style={[styles.avatar, { backgroundColor: colors.backgroundSelected }]}>

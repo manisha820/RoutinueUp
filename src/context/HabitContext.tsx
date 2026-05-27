@@ -179,7 +179,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   };
 
   const upgradeAccount = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.updateUser({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
